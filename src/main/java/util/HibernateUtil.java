@@ -4,7 +4,20 @@ import org.hibernate.SessionFactory;
 import org.hibernate.cfg.Configuration;
 
 public class HibernateUtil {
-    private static final SessionFactory sessionFactory;
+    private static SessionFactory sessionFactory;
+
+    public static SessionFactory initForTest(String jdbcUrl, String username, String password) {
+        if (sessionFactory != null) {
+            sessionFactory.close();
+        }
+        sessionFactory = new Configuration()
+                .setProperty("hibernate.connection.url", jdbcUrl)
+                .setProperty("hibernate.connection.username", username)
+                .setProperty("hibernate.connection.password", password)
+                .configure()
+                .buildSessionFactory();
+        return sessionFactory;
+    }
 
     static {
         try {
@@ -20,6 +33,9 @@ public class HibernateUtil {
     }
 
     public static void shutdown() {
-        getSessionFactory().close();
+        if (sessionFactory != null) {
+            sessionFactory.close();
+        }
     }
 }
+

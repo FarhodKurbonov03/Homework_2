@@ -1,8 +1,9 @@
 package app;
 
-import model.User;
-import dao.UserDao;
 import dao.impl.UserDaoImpl;
+import model.User;
+import service.UserService;
+import service.impl.UserServiceImpl;
 import exceptions.app.InvalidInputException;
 import exceptions.dao.*;
 import org.apache.logging.log4j.LogManager;
@@ -16,7 +17,7 @@ public class Main {
 
     private static final Logger logger = LogManager.getLogger(Main.class);
     private static final Scanner scanner = new Scanner(System.in);
-    private static final UserDao userDao = new UserDaoImpl();
+    private static final UserService userService = new UserServiceImpl(new UserDaoImpl());
 
     public static void main(String[] args) {
         boolean running = true;
@@ -36,8 +37,10 @@ public class Main {
                 }
             } catch (InvalidInputException e) {
                 System.out.println("Ошибка ввода: " + e.getMessage());
+                logger.warn("Неверная опция меню", e);
             } catch (NumberFormatException e) {
                 System.out.println("Введите только числа для выбора опции");
+                logger.warn("Неверный формат ввода", e);
             }
         }
 
@@ -65,10 +68,13 @@ public class Main {
             int age = Integer.parseInt(scanner.nextLine());
 
             User user = new User(name, email, age);
-            userDao.addUser(user);
+            userService.addUser(user);
+
             System.out.println("Пользователь успешно добавлен");
+            logger.info("Создан пользователь: {}", user);
         } catch (NumberFormatException e) {
             System.out.println("Возраст должен быть числом");
+            logger.warn("Неверный формат возраста", e);
         } catch (UserCreationException e) {
             System.out.println("Ошибка при добавлении пользователя: " + e.getMessage());
             logger.error("Ошибка при добавлении пользователя", e);
@@ -79,13 +85,16 @@ public class Main {
         try {
             System.out.print("Введите ID пользователя: ");
             Long id = Long.parseLong(scanner.nextLine());
-            Optional<User> user = userDao.getUserById(id);
-            user.ifPresentOrElse(
-                    System.out::println,
-                    () -> System.out.println("Пользователь с таким ID не найден")
-            );
+
+            User user = userService.getUserById(id);
+            System.out.println(user);
+
         } catch (NumberFormatException e) {
             System.out.println("ID должен быть числом");
+            logger.warn("Неверный формат ID", e);
+        } catch (UserNotFoundException e) {
+            System.out.println(e.getMessage());
+            logger.warn("Пользователь не найден", e);
         } catch (UserReadException e) {
             System.out.println("Ошибка при чтении пользователя: " + e.getMessage());
             logger.error("Ошибка при чтении пользователя", e);
@@ -94,7 +103,7 @@ public class Main {
 
     private static void getAllUsers() {
         try {
-            List<User> users = userDao.getAllUsers();
+            List<User> users = userService.getAllUsers();
             if (users.isEmpty()) {
                 System.out.println("Нет пользователей в базе");
             } else {
@@ -110,13 +119,8 @@ public class Main {
         try {
             System.out.print("Введите ID пользователя для обновления: ");
             Long id = Long.parseLong(scanner.nextLine());
-            Optional<User> optionalUser = userDao.getUserById(id);
-            if (optionalUser.isEmpty()) {
-                System.out.println("Пользователь с таким ID не найден");
-                return;
-            }
 
-            User user = optionalUser.get();
+            User user = userService.getUserById(id);
 
             System.out.print("Новое имя (" + user.getName() + "): ");
             String name = scanner.nextLine();
@@ -130,10 +134,16 @@ public class Main {
             String ageInput = scanner.nextLine();
             if (!ageInput.isBlank()) user.setAge(Integer.parseInt(ageInput));
 
-            userDao.updateUser(user);
-            System.out.println("Пользователь успешно обновлён");
+            userService.updateUser(user);
+            System.out.println("Пользователь успешно обновлён: " + user);
+            logger.info("Обновлён пользователь: {}", user);
+
         } catch (NumberFormatException e) {
             System.out.println("Возраст должен быть числом");
+            logger.warn("Неверный формат возраста", e);
+        } catch (UserNotFoundException e) {
+            System.out.println("Пользователь с таким ID не найден");
+            logger.warn("Попытка обновления несуществующего пользователя", e);
         } catch (UserUpdateException | UserReadException e) {
             System.out.println("Ошибка при обновлении пользователя: " + e.getMessage());
             logger.error("Ошибка при обновлении пользователя", e);
@@ -144,8 +154,10 @@ public class Main {
         try {
             System.out.print("Введите ID пользователя для удаления: ");
             Long id = Long.parseLong(scanner.nextLine());
-            userDao.deleteUserById(id);
+
+            userService.deleteUserById(id);
             System.out.println("Пользователь успешно удалён");
+            logger.info("Удалён пользователь с ID {}", id);
         } catch (NumberFormatException e) {
             System.out.println("ID должен быть числом");
         } catch (UserDeletionException e) {

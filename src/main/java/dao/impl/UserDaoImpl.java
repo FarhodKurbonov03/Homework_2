@@ -8,6 +8,7 @@ import exceptions.dao.UserUpdateException;
 import model.User;
 import org.hibernate.HibernateException;
 import org.hibernate.Session;
+import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import util.HibernateUtil;
 import org.apache.logging.log4j.LogManager;
@@ -19,6 +20,15 @@ import java.util.Optional;
 public class UserDaoImpl implements UserDao {
 
     private static final Logger logger = LogManager.getLogger(UserDaoImpl.class);
+    private final SessionFactory sessionFactory;
+
+    public UserDaoImpl() {
+        this.sessionFactory = HibernateUtil.getSessionFactory();
+    }
+
+    public UserDaoImpl(SessionFactory sessionFactory) {
+        this.sessionFactory = sessionFactory;
+    }
 
     @Override
     public void addUser(User user) {
