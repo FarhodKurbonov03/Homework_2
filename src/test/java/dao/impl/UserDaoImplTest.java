@@ -108,12 +108,6 @@ class UserDaoImplTest {
         assertFalse(afterDelete.isPresent());
     }
 
-    @AfterAll
-    void teardown() {
-        testSessionFactory.close();
-        postgreSQLContainer.stop();
-    }
-
     private User createUser(String name, String email, int age) {
         return new User(name, email, age);
     }
